@@ -10,21 +10,24 @@
 // number, account holder name, and current balance.
 
 #include <iostream>
+#include <fstream>
+#include <sstream>
+#include <vector>
 #include <string>
 #include <limits>
 #include <cctype>
 #include <cstdlib>
 #include <ctime>
 
-using namespace std; // Global namespace directive
+using namespace std;
 
+// --- Account Class ---
 class Account {
 private:
     string accountNumber;
     string accountHolderName;
     double balance;
 
-    // Helper to generate a random 8-digit account number string
     string generateAccountNumber() {
         string accNum = "";
         for (int i = 0; i < 8; ++i) {
@@ -34,25 +37,24 @@ private:
     }
 
 public:
-    // Constructor
+    // Regular Constructor
     Account(string name, double initialBalance) {
         accountHolderName = name;
         accountNumber = generateAccountNumber();
-        
-        if (initialBalance >= 0.0) {
-            balance = initialBalance;
-        } else {
-            balance = 0.0;
-            cout << "Notice: Initial balance cannot be negative. Set to $0.0.\n";
-        }
+        balance = (initialBalance >= 0.0) ? initialBalance : 0.0;
     }
 
-    // Getters
+    // Constructor used when loading existing data from the text file
+    Account(string accNum, string name, double bal) {
+        accountNumber = accNum;
+        accountHolderName = name;
+        balance = bal;
+    }
+
     string getAccountNumber() const { return accountNumber; }
     string getAccountHolderName() const { return accountHolderName; }
     double getBalance() const { return balance; }
 
-    // Deposit method
     void deposit(double amount) {
         if (amount > 0) {
             balance += amount;
@@ -62,13 +64,12 @@ public:
         }
     }
 
-    // Withdraw method with safety check
     bool withdraw(double amount) {
         if (amount <= 0) {
             cout << "Error: Withdrawal amount must be positive!\n";
             return false;
         } else if (amount > balance) {
-            cout << "Error: Insufficient funds! Withdrawal denied.\n";
+            cout << "Error: Insufficient funds!\n";
             return false;
         } else {
             balance -= amount;
@@ -77,134 +78,249 @@ public:
         }
     }
 
-    // Simplified Transfer Method: No pointers, no references, no "this->"
-    // It only handles withdrawing from the current account.
-    bool transferOut(double amount) {
-        cout << "\nInitiating transfer of $" << amount << "...\n";
-        
-        if (withdraw(amount)) {
-            return true;
-        } else {
-            cout << "Transfer failed due to underlying account restrictions.\n";
-            return false;
-        }
-    }
-
-    // Display account details
     void displayDetails() const {
-        cout << "\n--- Account Details ---" << "\n";
-        cout << "Account Holder : " << accountHolderName << "\n";
-        cout << "Account Number : " << accountNumber << "\n";
-        cout << "Current Balance: $" << balance << "\n";
-        cout << "-----------------------\n";
+        cout << "Account Holder : " << accountHolderName << " | Acc #: " << accountNumber << " | Balance: $" << balance << "\n";
     }
 };
 
-// --- Helper Functions ---
-
-// Simplified password strength checker (Only checks length now)
-bool isPasswordStrong(string password) {
-    if (password.length() >= 8) {
-        return true;
-    }
-
-    cout << "\n❌ Weak Password! It must be at least 8 characters long.\n\n";
-    return false;
-}
-
-// Robust input validation helper for doubles
+// --- Input Validation Helper ---
 double getValidDouble() {
     double value;
     while (true) {
         if (cin >> value) {
+            cin.ignore(numeric_limits<streamsize>::max(), '\n'); // Clear trailing newlines
             return value;
         } else {
             cout << "Error: Invalid input! Please enter a valid number: ";
-            cin.clear(); 
-            cin.ignore(numeric_limits<streamsize>::max(), '\n'); 
+            cin.clear();
+            cin.ignore(numeric_limits<streamsize>::max(), '\n');
         }
     }
 }
 
-int main(int argc, char *argv[]) {
-    srand(time(0)); 
+// --- Bank System Manager (Handles File Database & Admin Features) ---
+class BankSystem {
+private:
+    vector<Account> accounts;
+    const string filename = "accounts.txt";
 
-    string name, password;
-    double initialBalance;
+public:
+    // Load accounts from text file on startup
+    void loadAccountsFromFile() {
+        accounts.clear();
+        ifstream inFile(filename);
+        if (!inFile) return; // File doesn't exist yet, which is fine
 
-    cout << "=== Welcome to the Automated Banking Registration ===\n";
-    cout << "Enter Account Holder Full Name: ";
-    getline(cin, name);
+        string line;
+        while (getline(inFile, line)) {
+            if (line.empty()) continue;
+            
+            stringstream ss(line);
+            string indexStr, accNum, name, balStr;
+            
+            // Parse custom text database layout: Index | AccNum | Name | Balance
+            getline(ss, indexStr, ',');
+            getline(ss, accNum, ',');
+            getline(ss, name, ',');
+            getline(ss, balStr, ',');
 
-    // Registration Loop for Password Strength
-    do {
-        cout << "Set a strong account password: ";
-        cin >> password;
-    } while (!isPasswordStrong(password));
-
-    cout << "✔ Password accepted.\n";
-    cout << "Enter Initial Deposit Balance: ";
-    initialBalance = getValidDouble();
-
-    // Create primary user account
-    Account userAccount(name, initialBalance);
-    cout << "\n🎉 Account created successfully!";
-    userAccount.displayDetails();
-
-    // Create a dummy secondary account for testing transfers
-    Account testAccount("Ayesha (External Savings)", 500.00);
-    cout << "Notice: A secondary default account was auto-generated for testing wire transfers:\n";
-    cout << " * Target Name: " << testAccount.getAccountHolderName() << "\n";
-    cout << " * Target Account #: " << testAccount.getAccountNumber() << "\n";
-
-    int choice = 0;
-    do {
-        cout << "\n=== Interactive Banking Menu ===\n";
-        cout << "1. Deposit Funds\n";
-        cout << "2. Withdraw Funds\n";
-        cout << "3. Secure Fund Transfer\n";
-        cout << "4. Display Account Information\n";
-        cout << "5. Exit\n";
-        cout << "Enter option: ";
-        
-        double choiceInput = getValidDouble();
-        choice = static_cast<int>(choiceInput);
-
-        switch (choice) {
-            case 1: {
-                cout << "Enter amount to deposit: ";
-                double amt = getValidDouble();
-                userAccount.deposit(amt);
-                break;
+            if (!accNum.empty() && !name.empty()) {
+                double bal = stod(balStr);
+                accounts.push_back(Account(accNum, name, bal));
             }
-            case 2: {
-                cout << "Enter amount to withdraw: ";
-                double amt = getValidDouble();
-                userAccount.withdraw(amt);
-                break;
-            }
-            case 3: {
-                cout << "Enter transfer amount to send to " << testAccount.getAccountHolderName() << ": ";
-                double amt = getValidDouble();
-                
-                // If the withdrawal succeeds from the sender, deposit directly into the recipient
-                if (userAccount.transferOut(amt)) {
-                    testAccount.deposit(amt);
-                    cout << "Transfer complete!\n";
-                }
-                break;
-            }
-            case 4:
-                userAccount.displayDetails();
-                cout << "Secondary Test Account Status: Balance is $" << testAccount.getBalance() << "\n";
-                break;
-            case 5:
-                cout << "Thank you for banking with us. Goodbye!\n";
-                break;
-            default:
-                cout << "Invalid menu index selection. Range is [1-5].\n";
         }
-    } while (choice != 5);
+        inFile.close();
+    }
+
+    // Save/Sync dynamic array changes back to accounts.txt
+    void saveAccountsToFile() {
+        ofstream outFile(filename, ios::trunc); // Overwrite with fresh index alignment
+        if (!outFile) {
+            cout << "Critical Error: Could not write to database file!\n";
+            return;
+        }
+
+        // The index increments dynamically based on its position in the loop
+        for (size_t i = 0; i < accounts.size(); ++i) {
+            outFile << (i + 1) << "," 
+                    << accounts[i].getAccountNumber() << "," 
+                    << accounts[i].getAccountHolderName() << "," 
+                    << accounts[i].getBalance() << "\n";
+        }
+        outFile.close();
+    }
+
+    // Admin Feature: Add Account
+    void adminAddAccount() {
+        string name;
+        double initialBalance;
+        cout << "\n--- [Admin] Create New Account ---\n";
+        cout << "Enter Customer Full Name: ";
+        getline(cin, name);
+        cout << "Enter Initial Deposit Balance: ";
+        initialBalance = getValidDouble();
+
+        Account newAcc(name, initialBalance);
+        accounts.push_back(newAcc);
+        saveAccountsToFile(); // Sync file system
+        
+        cout << "🎉 Success! Account created at Index [" << accounts.size() << "]\n";
+    }
+
+    // Admin Feature: Remove Account (Decrements index automatically)
+    void adminRemoveAccount() {
+        if (accounts.empty()) {
+            cout << "No accounts available to remove.\n";
+            return;
+        }
+
+        adminViewAllAccounts();
+        cout << "\nEnter the Index number of the account you want to REMOVE: ";
+        int targetIdx = static_cast<int>(getValidDouble());
+
+        if (targetIdx < 1 || targetIdx > static_cast<int>(accounts.size())) {
+            cout << "❌ Error: Invalid index selection.\n";
+            return;
+        }
+
+        // Remove element from vector (translates 1-based index to 0-based vector index)
+        string removedName = accounts[targetIdx - 1].getAccountHolderName();
+        accounts.erase(accounts.begin() + (targetIdx - 1));
+        
+        // Re-write database file to naturally shift indices downwards
+        saveAccountsToFile();
+        cout << "🗑️ Successfully removed " << removedName << ". Remaining index count shifted.\n";
+    }
+
+    // Admin Feature: View All Records
+    void adminViewAllAccounts() {
+        cout << "\n=========================================\n";
+        cout << "       SYSTEM ACCOUNT DATABASE REGISTRY  \n";
+        cout << "=========================================\n";
+        if (accounts.empty()) {
+            cout << " [Empty Registry - No Accounts Found] \n";
+            return;
+        }
+
+        for (size_t i = 0; i < accounts.size(); ++i) {
+            cout << "Index [" << (i + 1) << "] -> ";
+            accounts[i].displayDetails();
+        }
+        cout << "=========================================\n";
+        cout << "Total Active Accounts Registered: " << accounts.size() << "\n";
+    }
+
+    // Helper to find account by index pointer safely for standard workflows
+    Account* getAccountRef(size_t index) {
+        if (index > 0 && index <= accounts.size()) {
+            return &accounts[index - 1];
+        }
+        return nullptr;
+    }
+    
+    size_t getSystemSize() const { return accounts.size(); }
+};
+
+// --- Main Program Workflow ---
+int main() {
+    srand(time(0));
+    BankSystem bank;
+    bank.loadAccountsFromFile(); // Hydrate the storage array from text file
+
+    const string ADMIN_USER = "admin";
+    const string ADMIN_PASS = "admin123";
+
+    int identityChoice = 0;
+    
+    cout << "=== Welcome to the Automated Secure Banking Hub ===\n";
+    cout << "Select Portal Access Mode:\n";
+    cout << "1. Administrator Portal\n";
+    cout << "2. General Customer Simulation\n";
+    cout << "Enter choice: ";
+    identityChoice = static_cast<int>(getValidDouble());
+
+    if (identityChoice == 1) {
+        // --- ADMIN SYSTEM RUNTIME ---
+        string user, pass;
+        cout << "\n--- Secure Admin Verification Required ---\n";
+        cout << "Username: ";
+        cin >> user;
+        cout << "Password: ";
+        cin >> pass;
+
+        if (user == ADMIN_USER && pass == ADMIN_PASS) {
+            int adminChoice = 0;
+            do {
+                cout << "\n=== 🛠️ Administrator Management Panel ===\n";
+                cout << "1. View All Registered Accounts (With Auto-Index)\n";
+                cout << "2. Add New Account (Increments Index)\n";
+                cout << "3. Remove Existing Account (Decrements Index)\n";
+                cout << "4. Exit Terminal\n";
+                cout << "Enter Action: ";
+                adminChoice = static_cast<int>(getValidDouble());
+
+                switch (adminChoice) {
+                    case 1:
+                        bank.adminViewAllAccounts();
+                        break;
+                    case 2:
+                        bank.adminAddAccount();
+                        break;
+                    case 3:
+                        bank.adminRemoveAccount();
+                        break;
+                    case 4:
+                        cout << "Closing Admin session. System states safely exported.\n";
+                        break;
+                    default:
+                        cout << "Invalid Option selected.\n";
+                }
+            } while (adminChoice != 4);
+        } else {
+            cout << "❌ Authentication Failed! Unauthorized terminal shutdown.\n";
+        }
+    } else {
+        // --- CUSTOMER PORTAL DEMO ---
+        if (bank.getSystemSize() == 0) {
+            cout << "\nNotice: No database records found. Let's register a default user first.\n";
+            bank.adminAddAccount();
+        }
+
+        int choice = 0;
+        do {
+            cout << "\n=== Interactive User Banking Menu ===\n";
+            cout << "1. Deposit Funds (Modifies First Database Record)\n";
+            cout << "2. Display My Account Info\n";
+            cout << "3. Exit System\n";
+            cout << "Enter option: ";
+            choice = static_cast<int>(getValidDouble());
+
+            Account* primaryUser = bank.getAccountRef(1); // Interact with first indexed account
+
+            switch (choice) {
+                case 1: {
+                    if (primaryUser) {
+                        cout << "Enter amount to deposit: ";
+                        double amt = getValidDouble();
+                        primaryUser->deposit(amt);
+                        bank.saveAccountsToFile(); // Save balance change back to txt file
+                    }
+                    break;
+                }
+                case 2:
+                    if (primaryUser) {
+                        cout << "\n--- Your Account Details ---\n";
+                        primaryUser->displayDetails();
+                    }
+                    break;
+                case 3:
+                    cout << "Thank you for using our system. Goodbye!\n";
+                    break;
+                default:
+                    cout << "Invalid choice.\n";
+            }
+        } while (choice != 3);
+    }
 
     return 0;
 }
