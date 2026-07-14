@@ -1,4 +1,4 @@
-<<<<<<< HEAD
+
 #include "BankSystem.h"
 #include <iostream>
 #include <cstdlib>
