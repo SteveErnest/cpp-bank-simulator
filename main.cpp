@@ -1,4 +1,3 @@
-
 #include "BankSystem.h"
 #include <iostream>
 #include <cstdlib>
@@ -53,8 +52,48 @@ int main() {
         }
     } else {
         if (bank.getSystemSize() == 0) {
-            std::cout << "\nNotice: No database records found. Let's register a default user first.\n";
+            std::cout << "\nNotice: No database records found. Let's register a default user first.\n";            
+            bank.adminAddAccount();
         }
+
+        int choice = 0;
+        do {
+            std::cout << "\n=== Interactive User Banking Menu ===\n";
+            std::cout << "1. Deposit Funds (Modifies First Database Record)\n";
+            std::cout << "2. Display My Account Info\n";
+            std::cout << "3. Exit System\n";
+            std::cout << "Enter option: ";
+            choice = static_cast<int>(getValidDouble());
+
+            Account* primaryUser = bank.getAccountRef(1); 
+
+            switch (choice) {
+                case 1: {
+                    if (primaryUser) {
+                        std::cout << "Enter amount to deposit: ";
+                        double amt = getValidDouble();
+                        primaryUser->deposit(amt);
+                        bank.saveAccountsToFile(); 
+                    }
+                    break;
+                }
+                case 2:
+                    if (primaryUser) {
+                        std::cout << "\n--- Your Account Details ---\n";
+                        primaryUser->displayDetails();
+                    }
+                    break;
+                case 3:
+                    std::cout << "Thank you for using our system. Goodbye!\n";
+                    break;
+                default:
+                    std::cout << "Invalid choice.\n";
+            }
+        } while (choice != 3);
+    }
+
+    return 0;
+}
 
 // TODO: Create a Account class with the following attributes: account number,
 // account holder name, and balance. Implement methods to deposit and withdraw money,
