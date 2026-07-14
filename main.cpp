@@ -1,0 +1,96 @@
+#include "BankSystem.h"
+#include <iostream>
+#include <cstdlib>
+#include <ctime>
+
+int main() {
+    std::srand(std::time(0));
+    BankSystem bank;
+    bank.loadAccountsFromFile(); 
+
+    const std::string ADMIN_USER = "admin";
+    const std::string ADMIN_PASS = "admin123";
+
+    int identityChoice = 0;
+    
+    std::cout << "=== Welcome to the Automated Secure Banking Hub ===\n";
+    std::cout << "Select Portal Access Mode:\n";
+    std::cout << "1. Administrator Portal\n";
+    std::cout << "2. General Customer Simulation\n";
+    std::cout << "Enter choice: ";
+    identityChoice = static_cast<int>(getValidDouble());
+
+    if (identityChoice == 1) {
+        std::string user, pass;
+        std::cout << "\n--- Secure Admin Verification Required ---\n";
+        std::cout << "Username: ";
+        std::cin >> user;
+        std::cout << "Password: ";
+        std::cin >> pass;
+
+        if (user == ADMIN_USER && pass == ADMIN_PASS) {
+            int adminChoice = 0;
+            do {
+                std::cout << "\n=== Management Panel ===\n";
+                std::cout << "1. View All Registered Accounts\n";
+                std::cout << "2. Add New Account\n";
+                std::cout << "3. Remove Existing Account\n";
+                std::cout << "4. Exit Terminal\n";
+                std::cout << "Enter Action: ";
+                adminChoice = static_cast<int>(getValidDouble());
+
+                switch (adminChoice) {
+                    case 1: bank.adminViewAllAccounts(); break;
+                    case 2: bank.adminAddAccount(); break;
+                    case 3: bank.adminRemoveAccount(); break;
+                    case 4: std::cout << "Closing Admin session. System states safely exported.\n"; break;
+                    default: std::cout << "Invalid Option selected.\n";
+                }
+            } while (adminChoice != 4);
+        } else {
+            std::cout << "Authentication Failed! Unauthorized terminal shutdown.\n";
+        }
+    } else {
+        if (bank.getSystemSize() == 0) {
+            std::cout << "\nNotice: No database records found. Let's register a default user first.\n";
+            bank.adminAddAccount();
+        }
+
+        int choice = 0;
+        do {
+            std::cout << "\n=== Interactive User Banking Menu ===\n";
+            std::cout << "1. Deposit Funds (Modifies First Database Record)\n";
+            std::cout << "2. Display My Account Info\n";
+            std::cout << "3. Exit System\n";
+            std::cout << "Enter option: ";
+            choice = static_cast<int>(getValidDouble());
+
+            Account* primaryUser = bank.getAccountRef(1); 
+
+            switch (choice) {
+                case 1: {
+                    if (primaryUser) {
+                        std::cout << "Enter amount to deposit: ";
+                        double amt = getValidDouble();
+                        primaryUser->deposit(amt);
+                        bank.saveAccountsToFile(); 
+                    }
+                    break;
+                }
+                case 2:
+                    if (primaryUser) {
+                        std::cout << "\n--- Your Account Details ---\n";
+                        primaryUser->displayDetails();
+                    }
+                    break;
+                case 3:
+                    std::cout << "Thank you for using our system. Goodbye!\n";
+                    break;
+                default:
+                    std::cout << "Invalid choice.\n";
+            }
+        } while (choice != 3);
+    }
+
+    return 0;
+}
