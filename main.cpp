@@ -54,7 +54,7 @@ int main() {
     } else {
         if (bank.getSystemSize() == 0) {
             std::cout << "\nNotice: No database records found. Let's register a default user first.\n";
-=======
+        }
 
 // TODO: Create a Account class with the following attributes: account number,
 // account holder name, and balance. Implement methods to deposit and withdraw money,
