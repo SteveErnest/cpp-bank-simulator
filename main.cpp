@@ -130,4 +130,4 @@ int main()
 // number, account holder name, and current balance.
 
 // TODO: Create components to seperate classes and main.cpp. Files need to be modularized to separate the Account class,
-// BankSystem class, and main program logic into different files. This will improve code organization and maintainability..
+// BankSystem class, and main program logic into different files. This will improve code organization and maintainability.
