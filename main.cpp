@@ -3,16 +3,17 @@
 #include <cstdlib>
 #include <ctime>
 
-int main() {
+int main()
+{
     std::srand(std::time(0));
     BankSystem bank;
-    bank.loadAccountsFromFile(); 
+    bank.loadAccountsFromFile();
 
     const std::string ADMIN_USER = "admin";
     const std::string ADMIN_PASS = "admin123";
 
     int identityChoice = 0;
-    
+
     std::cout << "=== Welcome to the Automated Secure Banking Hub ===\n";
     std::cout << "Select Portal Access Mode:\n";
     std::cout << "1. Administrator Portal\n";
@@ -20,7 +21,8 @@ int main() {
     std::cout << "Enter choice: ";
     identityChoice = static_cast<int>(getValidDouble());
 
-    if (identityChoice == 1) {
+    if (identityChoice == 1)
+    {
         std::string user, pass;
         std::cout << "\n--- Secure Admin Verification Required ---\n";
         std::cout << "Username: ";
@@ -28,9 +30,11 @@ int main() {
         std::cout << "Password: ";
         std::cin >> pass;
 
-        if (user == ADMIN_USER && pass == ADMIN_PASS) {
+        if (user == ADMIN_USER && pass == ADMIN_PASS)
+        {
             int adminChoice = 0;
-            do {
+            do
+            {
                 std::cout << "\n=== Management Panel ===\n";
                 std::cout << "1. View All Registered Accounts\n";
                 std::cout << "2. Add New Account\n";
@@ -39,25 +43,41 @@ int main() {
                 std::cout << "Enter Action: ";
                 adminChoice = static_cast<int>(getValidDouble());
 
-                switch (adminChoice) {
-                    case 1: bank.adminViewAllAccounts(); break;
-                    case 2: bank.adminAddAccount(); break;
-                    case 3: bank.adminRemoveAccount(); break;
-                    case 4: std::cout << "Closing Admin session. System states safely exported.\n"; break;
-                    default: std::cout << "Invalid Option selected.\n";
+                switch (adminChoice)
+                {
+                case 1:
+                    bank.adminViewAllAccounts();
+                    break;
+                case 2:
+                    bank.adminAddAccount();
+                    break;
+                case 3:
+                    bank.adminRemoveAccount();
+                    break;
+                case 4:
+                    std::cout << "Closing Admin session. System states safely exported.\n";
+                    break;
+                default:
+                    std::cout << "Invalid Option selected.\n";
                 }
             } while (adminChoice != 4);
-        } else {
+        }
+        else
+        {
             std::cout << "Authentication Failed! Unauthorized terminal shutdown.\n";
         }
-    } else {
-        if (bank.getSystemSize() == 0) {
-            std::cout << "\nNotice: No database records found. Let's register a default user first.\n";            
+    }
+    else
+    {
+        if (bank.getSystemSize() == 0)
+        {
+            std::cout << "\nNotice: No database records found. Let's register a default user first.\n";
             bank.adminAddAccount();
         }
 
         int choice = 0;
-        do {
+        do
+        {
             std::cout << "\n=== Interactive User Banking Menu ===\n";
             std::cout << "1. Deposit Funds (Modifies First Database Record)\n";
             std::cout << "2. Display My Account Info\n";
@@ -65,29 +85,33 @@ int main() {
             std::cout << "Enter option: ";
             choice = static_cast<int>(getValidDouble());
 
-            Account* primaryUser = bank.getAccountRef(1); 
+            Account *primaryUser = bank.getAccountRef(1);
 
-            switch (choice) {
-                case 1: {
-                    if (primaryUser) {
-                        std::cout << "Enter amount to deposit: ";
-                        double amt = getValidDouble();
-                        primaryUser->deposit(amt);
-                        bank.saveAccountsToFile(); 
-                    }
-                    break;
+            switch (choice)
+            {
+            case 1:
+            {
+                if (primaryUser)
+                {
+                    std::cout << "Enter amount to deposit: ";
+                    double amt = getValidDouble();
+                    primaryUser->deposit(amt);
+                    bank.saveAccountsToFile();
                 }
-                case 2:
-                    if (primaryUser) {
-                        std::cout << "\n--- Your Account Details ---\n";
-                        primaryUser->displayDetails();
-                    }
-                    break;
-                case 3:
-                    std::cout << "Thank you for using our system. Goodbye!\n";
-                    break;
-                default:
-                    std::cout << "Invalid choice.\n";
+                break;
+            }
+            case 2:
+                if (primaryUser)
+                {
+                    std::cout << "\n--- Your Account Details ---\n";
+                    primaryUser->displayDetails();
+                }
+                break;
+            case 3:
+                std::cout << "Thank you for using our system. Goodbye!\n";
+                break;
+            default:
+                std::cout << "Invalid choice.\n";
             }
         } while (choice != 3);
     }
@@ -107,5 +131,3 @@ int main() {
 
 // TODO: Create components to seperate classes and main.cpp. Files need to be modularized to separate the Account class,
 // BankSystem class, and main program logic into different files. This will improve code organization and maintainability.
-
-
